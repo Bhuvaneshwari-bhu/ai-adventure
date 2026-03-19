@@ -73,11 +73,46 @@ graph TB
 
 ---
 
+## What is a Commit?
+
+A commit is a **screenshot of your entire project** at one moment in time.
+
+Think of it like a save point in a video game. Every time you commit, Git takes a photo of **all your files** and stores it permanently. You can always go back to any save point.
+
+### What happens inside a commit?
+
+Every commit stores:
+- **A snapshot** — the complete state of every file at that moment
+- **A message** — what you changed and why (written by you)
+- **A unique ID** — a long hash like `a3f2b7c` (Git generates this)
+- **A pointer to its parent** — which commit came before it
+- **Who and when** — your name, email, and timestamp
+
+### How does Git know what changed?
+
+When you make **Commit 2**, Git doesn't blindly save everything again. It **compares** Commit 2 with Commit 1, figures out the **difference (called a "diff")**, and stores only the changes efficiently. But logically, each commit represents the **full snapshot** — you can always check out any commit and get the complete project at that point.
+
+```mermaid
+graph LR
+    C1["COMMIT 1<br/>-----------<br/>Snapshot of all files<br/>at this moment"]:::c1
+    C2["COMMIT 2<br/>-----------<br/>Snapshot of all files<br/>at this moment"]:::c2
+    DIFF["Git compares<br/>and finds the<br/>DIFFERENCE"]:::diff
+
+    C1 --> DIFF
+    DIFF --> C2
+
+    classDef c1 fill:#4ECDC4,stroke:#333,color:#fff,font-weight:bold
+    classDef c2 fill:#6BCB77,stroke:#333,color:#fff,font-weight:bold
+    classDef diff fill:#FFD93D,stroke:#333,color:#333,font-weight:bold
+```
+
+---
+
 ## Real Example: Building a Calculator Project
 
-Let's track a small project step by step and see how the Git graph grows.
+Let's build a real project and watch Git track every change — **with actual code**.
 
-### Step 1: Create the project
+### Commit 1: Create the project
 
 ```bash
 mkdir calculator && cd calculator
@@ -87,23 +122,29 @@ git add README.md
 git commit -m "Initial commit: add README"
 ```
 
-**Git graph after Step 1:**
+At this moment, your project has **one file**:
+
+```
+README.md → "# Calculator App"
+```
+
+**Git takes a snapshot:**
 
 ```mermaid
 graph LR
-    A["Initial commit<br/>add README"]:::c1
-    HEAD["HEAD"]:::head --> A
-    MAIN["main"]:::branch --> A
+    C1["COMMIT 1<br/>-------------------<br/>README.md<br/># Calculator App"]:::c1
+    HEAD["HEAD → main"]:::head --> C1
 
     classDef c1 fill:#6BCB77,stroke:#333,color:#fff,font-weight:bold
     classDef head fill:#FF6B6B,stroke:#333,color:#fff,font-weight:bold
-    classDef branch fill:#FFD93D,stroke:#333,color:#333,font-weight:bold
 ```
 
-> **HEAD** = "Where am I right now?" It points to your current position in the graph.
+> **HEAD** = "Where am I right now?" It always points to your latest position.
 > **main** = The default branch name.
 
-### Step 2: Add the calculator code
+---
+
+### Commit 2: Add the first function
 
 ```bash
 echo "def add(a, b): return a + b" > calc.py
@@ -111,21 +152,29 @@ git add calc.py
 git commit -m "Add basic add function"
 ```
 
-**Git graph after Step 2:**
+Now your project has **two files**. Git compares with Commit 1 and sees: **one new file added**.
 
 ```mermaid
 graph LR
-    A["Initial commit"]:::c1 --> B["Add basic<br/>add function"]:::c2
-    HEAD["HEAD"]:::head --> B
-    MAIN["main"]:::branch --> B
+    C1["COMMIT 1<br/>-------------------<br/>README.md"]:::c1
+    C2["COMMIT 2<br/>-------------------<br/>README.md<br/>calc.py: add()"]:::c2
+    DIFF["NEW FILE<br/>+ calc.py"]:::diff
+
+    C1 --> DIFF --> C2
 
     classDef c1 fill:#4ECDC4,stroke:#333,color:#fff,font-weight:bold
     classDef c2 fill:#6BCB77,stroke:#333,color:#fff,font-weight:bold
-    classDef head fill:#FF6B6B,stroke:#333,color:#fff,font-weight:bold
-    classDef branch fill:#FFD93D,stroke:#333,color:#333,font-weight:bold
+    classDef diff fill:#FFD93D,stroke:#333,color:#333,font-weight:bold
 ```
 
-### Step 3: Add more operations
+What Git sees (the diff):
+```diff
++ def add(a, b): return a + b     ← this whole line is NEW (green = added)
+```
+
+---
+
+### Commit 3: Add subtract function
 
 ```bash
 echo "def subtract(a, b): return a - b" >> calc.py
@@ -133,40 +182,85 @@ git add calc.py
 git commit -m "Add subtract function"
 ```
 
+Git compares with Commit 2. Same files, but `calc.py` has **one new line**.
+
+```mermaid
+graph LR
+    C1["COMMIT 1<br/>-------------------<br/>README.md"]:::c1
+    C2["COMMIT 2<br/>-------------------<br/>README.md<br/>calc.py: add()"]:::c2
+    C3["COMMIT 3<br/>-------------------<br/>README.md<br/>calc.py: add()<br/>calc.py: subtract()"]:::c3
+    DIFF["CHANGED FILE<br/>calc.py<br/>+ subtract()"]:::diff
+
+    C1 --> C2 --> DIFF --> C3
+
+    classDef c1 fill:#845EC2,stroke:#333,color:#fff,font-weight:bold
+    classDef c2 fill:#4ECDC4,stroke:#333,color:#fff,font-weight:bold
+    classDef c3 fill:#6BCB77,stroke:#333,color:#fff,font-weight:bold
+    classDef diff fill:#FFD93D,stroke:#333,color:#333,font-weight:bold
+```
+
+What Git sees (the diff):
+```diff
+  def add(a, b): return a + b          ← unchanged (no symbol)
++ def subtract(a, b): return a - b     ← NEW line (green = added)
+```
+
+---
+
+### Commit 4: Add multiply function
+
 ```bash
 echo "def multiply(a, b): return a * b" >> calc.py
 git add calc.py
 git commit -m "Add multiply function"
 ```
 
-**Git graph after Step 3:**
+Same pattern — Git compares with Commit 3, finds one new line:
+
+```diff
+  def add(a, b): return a + b          ← unchanged
+  def subtract(a, b): return a - b     ← unchanged
++ def multiply(a, b): return a * b     ← NEW line
+```
+
+---
+
+### The Final Git Graph — All 4 Commits
+
+Now look at the full history. Each box is a **complete snapshot** of the project:
 
 ```mermaid
 graph LR
-    A["C1<br/>Initial commit"]:::c1 --> B["C2<br/>Add add fn"]:::c2
-    B --> C["C3<br/>Add subtract fn"]:::c3
-    C --> D["C4<br/>Add multiply fn"]:::c4
-    HEAD["HEAD"]:::head --> D
-    MAIN["main"]:::branch --> D
+    C1["COMMIT 1<br/>-------------------<br/>README.md"]:::c1
+    C2["COMMIT 2<br/>-------------------<br/>README.md<br/>calc.py: 1 function"]:::c2
+    C3["COMMIT 3<br/>-------------------<br/>README.md<br/>calc.py: 2 functions"]:::c3
+    C4["COMMIT 4<br/>-------------------<br/>README.md<br/>calc.py: 3 functions"]:::c4
+
+    C1 --> C2 --> C3 --> C4
+
+    HEAD["HEAD → main"]:::head --> C4
 
     classDef c1 fill:#845EC2,stroke:#333,color:#fff,font-weight:bold
     classDef c2 fill:#4ECDC4,stroke:#333,color:#fff,font-weight:bold
     classDef c3 fill:#45B7D1,stroke:#333,color:#fff,font-weight:bold
     classDef c4 fill:#6BCB77,stroke:#333,color:#fff,font-weight:bold
     classDef head fill:#FF6B6B,stroke:#333,color:#fff,font-weight:bold
-    classDef branch fill:#FFD93D,stroke:#333,color:#333,font-weight:bold
 ```
 
-> See how it grows? Each commit points to the next. You can **always** go back to C1 or C2 if something breaks.
+**Key takeaways:**
+- Each commit is a **full snapshot** — if you go back to Commit 2, you get the project with only `README.md` and `calc.py` with just `add()`
+- Git **compares** each commit with the previous one to efficiently store only what changed
+- The arrow means "this commit came from that one" — **you can never go backward** (that's the DAG!)
+- You can **always** travel back to any commit. Nothing is ever lost.
 
-### Step 4: Push to GitHub
+### Push to GitHub
 
 ```bash
 git remote add origin https://github.com/yourname/calculator.git
 git push -u origin main
 ```
 
-Now your entire graph (C1 → C2 → C3 → C4) is on GitHub too!
+Now your entire graph (C1 → C2 → C3 → C4) with all snapshots is on GitHub too!
 
 ---
 
